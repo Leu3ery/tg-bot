@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import telebot
 from telebot import types
 import text_for_user_bot as Text
+from datetime import datetime, timedelta
 
 
 load_dotenv()
@@ -19,11 +20,19 @@ class UserBot:
         @self.bot.message_handler(commands=['start'])
         def send_welcome(message):
             self.bd.add_new_user(message.chat.id)
+            self.bd.set_start_of_using_bot(message.chat.id, datetime.now().strftime("%Y-%m-%d"))
             Block(bot=self.bot, 
                   text=Text.block_start['text'], 
                   buttons=Text.block_start['buttons'],
                   edit=Text.block_start['edit']
                   ).place_block(message)
+        
+
+        @self.bot.message_handler(commands=['noprime'])
+        def no_prime(message):
+            self.bd.set_have_prime(message.chat.id, False)
+            self.bd.set_end_of_prime(message.chat.id, None)
+
             
         @self.bot.callback_query_handler(func=lambda call: True)
         def answer(call):
@@ -59,12 +68,16 @@ class UserBot:
                       dop_callback='_'+call.data.split('_')[-1]
                       ).place_block(call.message)
             elif 'crypto' in call.data:
+                self.bd.set_have_prime(call.message.chat.id, True)
+                self.bd.set_end_of_prime(call.message.chat.id, (datetime.now() + timedelta(days=30*int(a) if (a:=call.data.split('_')[-1]) != 'forever' else 9999)).strftime("%Y-%m-%d"))
                 Block(bot=self.bot, 
                       text=Text.block_crypto['text']+'\n'+call.data.split('_')[-1], 
                       buttons=Text.block_crypto['buttons'],
                       edit=Text.block_crypto['edit']
                       ).place_block(call.message)
             elif 'lavatopusd' in call.data:
+                self.bd.set_have_prime(call.message.chat.id, True)
+                self.bd.set_end_of_prime(call.message.chat.id, (datetime.now() + timedelta(days=30*int(a) if (a:=call.data.split('_')[-1]) != 'forever' else 9999)).strftime("%Y-%m-%d"))
                 Block(bot=self.bot, 
                       text=Text.block_lavatopusd['text']+'\n'+call.data.split('_')[-1], 
                       buttons=Text.block_lavatopusd['buttons'],

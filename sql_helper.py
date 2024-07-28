@@ -53,6 +53,9 @@ class SqlHelper:
         print("Nickname updated")
 
     def set_start_of_using_bot(self, user_id, start_of_using_bot):
+        if self.get_user(user_id)[0][3] != None:
+            print("Start of using bot already set")
+            return
         with self._get_connection() as conn:
             cur = conn.cursor()
             cur.execute("UPDATE users SET start_of_using_bot = ? WHERE user_id = ?", (start_of_using_bot, user_id))
