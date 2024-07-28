@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 
 load_dotenv()
 
+#Не забути замінити 10с на 60с
+
 
 class TrackingBot:
     def __init__(self, token, group_id, bd):
