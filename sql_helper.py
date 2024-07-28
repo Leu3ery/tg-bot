@@ -14,6 +14,7 @@ class SqlHelper:
                 nickname STRING,
                 start_of_using_bot INTEGER,
                 have_prime BOOLEAN,
+                end_of_prime STRING,
                 email STRING
             )""")
             conn.commit()
@@ -28,7 +29,7 @@ class SqlHelper:
             return
         with self._get_connection() as conn:
             cur = conn.cursor()
-            cur.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?)", (None, user_id, None, None, False, None))
+            cur.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?)", (None, user_id, None, None, False, None, None))
             conn.commit()
         print("User added")
     
@@ -64,6 +65,13 @@ class SqlHelper:
             cur.execute("UPDATE users SET have_prime = ? WHERE user_id = ?", (have_prime, user_id))
             conn.commit()
         print("Have prime updated")
+    
+    def set_end_of_prime(self, user_id, end_of_prime):
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("UPDATE users SET end_of_prime = ? WHERE user_id = ?", (end_of_prime, user_id))
+            conn.commit()
+        print("End of prime updated")
 
     def set_email(self, user_id, email):
         with self._get_connection() as conn:

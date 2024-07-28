@@ -4,12 +4,13 @@ import time
 from dotenv import load_dotenv
 import telebot
 from telebot import types
+from datetime import datetime, timedelta
 
 
 load_dotenv()
 
 
-class MyTeleBot:
+class TrackingBot:
     def __init__(self, token, group_id, bd):
         self.group_id = group_id
         self.bot = telebot.TeleBot(token)
@@ -49,15 +50,16 @@ class MyTeleBot:
                 # Your periodic task code here
                 # print("Periodic task running...")
                 for user in self.bd.get_all_users():
-                    user_status = self.bot.get_chat_member(chat_id=self.group_id, user_id=user[1]).status #left/member
                     prime = user[4]
+                    if user[4] and user[5] < datetime.now():
+                        self.bd.set_have_prime(user[1], False)
+                        self.bd.set_end_of_prime(user[1], None)
+                        prime = False  
+                    user_status = self.bot.get_chat_member(chat_id=self.group_id, user_id=user[1]).status #left/member
                     if user_status == 'member' and not prime:
                         self.bot.kick_chat_member(chat_id=self.group_id, user_id=user[1])
                         self.bot.unban_chat_member(chat_id=self.group_id, user_id=user[1])
                         print(f"User {user[1]} was kicked because of not having prime")
-
-                
-    
                 time.sleep(60)  # 60 sec = 1 min
 
         # Create a separate thread for the periodic task
@@ -79,5 +81,5 @@ if __name__ == "__main__":
     import sql_helper
     bd = sql_helper.SqlHelper()
 
-    my_bot = MyTeleBot(TRACKING_BOT_TOKEN, GROUP_ID, bd)
+    my_bot = TrackingBot(TRACKING_BOT_TOKEN, GROUP_ID, bd)
     my_bot.start()
