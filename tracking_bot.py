@@ -10,13 +10,16 @@ from datetime import datetime, timedelta
 load_dotenv()
 
 #Не забути замінити 10с на 60с
-
+#Розкоментировать
+# self.user_bot.no_prime_message(user[1])
+# в member наоборот
 
 class TrackingBot:
-    def __init__(self, token, group_id, bd):
+    def __init__(self, token, group_id, bd, user_bot):
         self.group_id = group_id
         self.bot = telebot.TeleBot(token)
         self.bd = bd 
+        self.user_bot = user_bot
         self.setup_handlers()
         self.start_periodic_task()
         # self.start()
@@ -53,15 +56,18 @@ class TrackingBot:
                 # print("Periodic task running...")
                 for user in self.bd.get_all_users():
                     prime = user[4]
+                    # set prime on False if time of prime is over
                     if user[4] and user[5] < datetime.now().strftime("%Y-%m-%d"):
                         self.bd.set_have_prime(user[1], False)
                         self.bd.set_end_of_prime(user[1], None)
                         prime = False  
+                        # self.user_bot.no_prime_message(user[1])
                     user_status = self.bot.get_chat_member(chat_id=self.group_id, user_id=user[1]).status #left/member
-                    # print(user_status, prime)
+
                     if user_status == 'member' and not prime:
                         self.bot.kick_chat_member(chat_id=self.group_id, user_id=user[1])
                         self.bot.unban_chat_member(chat_id=self.group_id, user_id=user[1])
+                        self.user_bot.no_prime_message(user[1])
                         print(f"User {user[1]} was kicked because of not having prime")
                 time.sleep(10)  # 60 sec = 1 min
 

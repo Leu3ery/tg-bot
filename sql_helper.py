@@ -16,7 +16,8 @@ class SqlHelper:
                 have_prime BOOLEAN,
                 end_of_prime STRING,
                 email STRING,
-                end_of_timer STRING
+                end_of_timer STRING,
+                had_prime BOOLEAN
             )""")
             conn.commit()
         print("Table created")
@@ -30,7 +31,7 @@ class SqlHelper:
             return
         with self._get_connection() as conn:
             cur = conn.cursor()
-            cur.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (None, user_id, None, None, False, None, None, None))
+            cur.execute("INSERT INTO users VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (None, user_id, None, None, False, None, None, None, False))
             conn.commit()
         print("User added")
     
@@ -90,6 +91,13 @@ class SqlHelper:
             cur.execute("UPDATE users SET end_of_timer = ? WHERE user_id = ?", (end_of_timer, user_id))
             conn.commit()
         print("End of timer updated")
+    
+    def set_had_prime(self, user_id, had_prime):
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("UPDATE users SET had_prime = ? WHERE user_id = ?", (had_prime, user_id))
+            conn.commit()
+        print("Had prime updated")
 
 if __name__ == "__main__":
     db = SqlHelper(db_name='database.db')

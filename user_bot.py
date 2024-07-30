@@ -24,30 +24,30 @@ class UserBot:
         def send_welcome(message):
             self.bd.add_new_user(message.chat.id)
             self.bd.set_start_of_using_bot(message.chat.id, datetime.now().strftime("%Y-%m-%d"))
+            self.bd.set_nickname(message.chat.id, message.chat.username)
+            if self.bd.get_user(message.chat.id)[0][8] == 1:
+                self.bd.set_end_of_timer(message.chat.id, None)
             Block(bot=self.bot, 
                   text=Text.block_start['text'], 
                   buttons=Text.block_start['buttons'],
                   edit=Text.block_start['edit'],
                   bd=self.bd
                   ).place_block(message)
+            if (user := self.bd.get_user(message.chat.id)[0])[7] != None and datetime.strptime(user[7], "%Y-%m-%d %H:%M:%S.%f") > datetime.now():
+                self.bot.send_message(chat_id=message.chat.id, text=f'{Text.timer_settings['end_of_timer_text']} {datetime.strptime(self.bd.get_user(message.chat.id)[0][7], "%Y-%m-%d %H:%M:%S.%f").strftime("%H:%M")}')
         
 
         @self.bot.message_handler(commands=['noprime'])
-        def no_prime(message):
+        def no_prime_handler(message):
             self.bd.set_have_prime(message.chat.id, False)
             self.bd.set_end_of_prime(message.chat.id, None)
-            Block(bot=self.bot,
-                  text='Tи потерял доступ к каналу. Хотите снова получить?',
-                  buttons=[('Да', 'choose_time'), ('Нет', 'menu')],
-                  edit=False,
-                  bd=self.bd,
-                  anyway=True
-                  ).place_block(message)
+        
         
         @self.bot.message_handler(commands=['notimer'])
-        def no_prime(message):
+        def no_timer_handler(message):
             self.bd.set_end_of_timer(message.chat.id, None)
-            self.bot.send_message(chat_id=message.chat.id, text='Появилось окно оплати. Жми /start')
+            self.no_timer_message(message.chat.id)
+            
 
             
         @self.bot.callback_query_handler(func=lambda call: True)
@@ -67,7 +67,9 @@ class UserBot:
                       bd=self.bd
                       ).place_block(call.message)
             elif call.data == 'choose_time':
-                self.set_timer(call.message.chat.id)
+                #Timer will added if user had not prime
+                if self.bd.get_user(call.message.chat.id)[0][8] == 0:
+                    self.set_timer(call.message.chat.id)
                 Block(bot=self.bot, 
                       text=Text.block_choose_time['text'], 
                       buttons=Text.block_choose_time['buttons'],
@@ -107,18 +109,31 @@ class UserBot:
                       ).place_block(call.message)
             elif 'for_free' in call.data:
                 self.bd.set_have_prime(call.message.chat.id, True)
+                self.bd.set_had_prime(call.message.chat.id, True)
                 self.bd.set_end_of_prime(call.message.chat.id, (datetime.now() + timedelta(days=30*int(a) if (a:=call.data.split('_')[-1]) != 'forever' else 9999)).strftime("%Y-%m-%d"))
                 Block(bot=self.bot, 
-                      text='Ты получил доступ к каналу: \nhttps://t.me/+mtojuZOTFE4zMTIy', 
-                      buttons=[('В меню', 'menu')],
-                      edit=True,
+                      text=Text.block_got_access['text'], 
+                      buttons=Text.block_got_access['buttons'],
+                      edit=Text.block_got_access['edit'],
                       bd=self.bd
                       ).place_block(call.message)
     
+    def no_prime_message(self, user_id):
+        JustBlock(bot=self.bot,
+              text=Text.block_noprime['text'],
+              buttons=Text.block_noprime['buttons'],
+              ).place_block(user_id)
+    
+    def no_timer_message(self, user_id):
+        JustBlock(bot=self.bot,
+              text=Text.timer_settings['new_timer_text'],
+              buttons=[],
+              ).place_block(user_id)
+
     def set_timer(self, user_id, anyway=False):
-        if self.bd.get_user(user_id)[0][7] == None or anyway:
+        if (user := self.bd.get_user(user_id)[0])[7] == None or anyway:
             self.bd.set_end_of_timer(user_id, datetime.now() + timedelta(minutes=Text.timer_settings['how_long']))
-            self.bot.send_message(chat_id=user_id, text=f'Доступ к боту закроется в {datetime.strptime(self.bd.get_user(user_id)[0][7], "%Y-%m-%d %H:%M:%S.%f").strftime("%H:%M")}')
+            self.bot.send_message(chat_id=user_id, text=f'{Text.timer_settings['end_of_timer_text']} {datetime.strptime(self.bd.get_user(user_id)[0][7], "%Y-%m-%d %H:%M:%S.%f").strftime("%H:%M")}')
 
     def start(self):
         print("Bot started")
@@ -147,10 +162,23 @@ class Block:
                 self.bot.send_message(chat_id=message.chat.id, text=self.text, reply_markup=markup)
         else:
             if self.edit:
-                self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text='Твое время вышло. Включи уведомления чтоби успеть в следующий раз...')
+                self.bot.edit_message_text(chat_id=message.chat.id, message_id=message.message_id, text=Text.timer_settings['timer_is_over_text'])
             else:
-                self.bot.send_message(chat_id=message.chat.id, text='Твое время вышло. Включи уведомления чтоби успеть в следующий раз...')
+                self.bot.send_message(chat_id=message.chat.id, text=Text.timer_settings['timer_is_over_text'])
 
+
+class JustBlock(Block):
+    def __init__(self,bot:UserBot, text:str, buttons:list[tuple]):
+        self.bot = bot
+        self.text = text
+        self.buttons = buttons
+
+    def place_block(self, user_id):
+        markup = types.InlineKeyboardMarkup()
+        for text, callback_data in self.buttons:
+            markup.add(types.InlineKeyboardButton(text=text, callback_data=callback_data))
+        self.bot.send_message(chat_id=user_id, text=self.text, reply_markup=markup)
+        
 
 
 if __name__ == "__main__":
