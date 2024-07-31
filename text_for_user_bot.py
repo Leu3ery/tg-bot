@@ -25,3 +25,19 @@ block_crypto = {'edit':True, 'buttons':[('Получить безплатно', 
 block_lavatopusd = {'edit':True, 'buttons':[('Получить безплатно', 'for_free'), ('В меню', 'menu')], 'text':'''Оплата по банковской карте пока не доступна'''}
 block_got_access = {'edit':True, 'buttons':[('В меню', 'menu')], 'text':'''Ты получил доступ к каналу: 
 https://t.me/+mtojuZOTFE4zMTIy'''}
+
+
+block_admin = {'buttons':[('Внешний вид', 'admin_view'), ('Таймер', 'admin_timer'), ('Общая розсылка', 'admin_send')], 'text':'''Ти в админ меню. Виберите действие: 👇'''}
+
+
+dop = {
+    'block_start':block_start,
+    'block_channel':block_channel,
+    'block_question':block_question,
+    'block_choose_time':block_choose_time,
+    'block_choose_payment':block_choose_payment,
+    'block_crypto':block_crypto,
+    'block_lavatopusd':block_lavatopusd,
+    'block_got_access':block_got_access,
+    'block_noprime':block_noprime,
+}

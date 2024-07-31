@@ -48,9 +48,53 @@ class UserBot:
             self.bd.set_end_of_timer(message.chat.id, None)
             self.no_timer_message(message.chat.id)
             
-
+        @self.bot.callback_query_handler(func=lambda call: call.data.startswith('admin'))
+        def answer_admin(call):
+            if call.data == 'admin_menu':
+                Block(bot=self.bot,
+                    text=Text.block_admin['text'],
+                    buttons=Text.block_admin['buttons'],
+                    bd=self.bd,
+                    anyway=True,
+                    edit=True
+                    ).place_block(call.message)
+            elif call.data == 'admin_timer':
+                Block(bot=self.bot, 
+                      text="Ти в раздели таймера", 
+                      buttons=[('В админ меню', 'admin_menu')],
+                      edit=True,
+                      bd=self.bd,
+                      anyway=True
+                      ).place_block(call.message)
+            elif call.data == 'admin_send':
+                Block(bot=self.bot, 
+                      text="Ти в раздели рассылки", 
+                      buttons=[('В админ меню', 'admin_menu')],
+                      edit=True,
+                      bd=self.bd,
+                      anyway=True
+                      ).place_block(call.message)
+            elif call.data == 'admin_view':
+                Block(bot=self.bot, 
+                      text="Ти в разделе изменения блоков", 
+                      buttons=[('Стартовый блок', 'admin_block_start'), ('Канал', 'admin_block_channel'), ('Вопросы', 'admin_block_question'), ('Выбор времени', 'admin_block_choose_time'), ('Выбор способа оплаты', 'admin_block_choose_payment'), ('Криптовалюта', 'admin_block_crypto'), ('Лаватоп', 'admin_block_lavatopusd'), ('При получении доступа', 'admin_block_got_access'), ('При окончании премиума', 'admin_block_noprime'), ('В админ меню', 'admin_menu')],
+                      edit=True,
+                      bd=self.bd,
+                      anyway=True
+                      ).place_block(call.message)
+            elif call.data.startswith('admin_block'):
+                Block(bot=self.bot, 
+                      text=f"Текст блока {call.data.split('_')[-1]}\n\n{Text.dop[call.data.replace('admin_','')]['text']}\n\nКнопки: \n\n{'\n'.join([f'{name}  -->  {link}' for name, link in Text.dop[call.data.replace('admin_','')]['buttons']])}", 
+                      buttons=[('Сменить текст', f'admin_change_text_{call.data.replace('admin_','')}'), ('Сменить кнопки', f'admin_change_buttons_{call.data.replace("admin_","")}'), ('<- Назад', 'admin_view')],
+                      edit=True,
+                      bd=self.bd,
+                      anyway=True
+                      ).place_block(call.message)
+            #ПРОДОВЖЕННЯ
             
-        @self.bot.callback_query_handler(func=lambda call: True)
+
+
+        @self.bot.callback_query_handler(func=lambda call: not call.data.startswith('admin'))
         def answer(call):
             if 'menu' in call.data:
                 Block(bot=self.bot, 
@@ -117,7 +161,18 @@ class UserBot:
                       edit=Text.block_got_access['edit'],
                       bd=self.bd
                       ).place_block(call.message)
-    
+
+        @self.bot.message_handler(commands=['admin'])
+        def admin_handler(message):
+            Block(bot=self.bot,
+                  text=Text.block_admin['text'],
+                  buttons=Text.block_admin['buttons'],
+                  bd=self.bd,
+                  anyway=True
+                  ).place_block(message)
+
+
+
     def no_prime_message(self, user_id):
         JustBlock(bot=self.bot,
               text=Text.block_noprime['text'],
@@ -179,6 +234,8 @@ class JustBlock(Block):
             markup.add(types.InlineKeyboardButton(text=text, callback_data=callback_data))
         self.bot.send_message(chat_id=user_id, text=self.text, reply_markup=markup)
         
+
+
 
 
 if __name__ == "__main__":
