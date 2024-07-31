@@ -16,6 +16,12 @@ class UserBot:
     def __init__(self, token, bd):
         self.bot = telebot.TeleBot(token)
         self.bd = bd 
+
+        self.temp_block_name = ''
+        self.temp_block_text = ''
+        self.temp_block_button_ind = ''
+        self.temp_block_button = ''
+
         self.setup_handlers()
         # self.start()
 
@@ -83,6 +89,10 @@ class UserBot:
                       anyway=True
                       ).place_block(call.message)
             elif call.data.startswith('admin_block'):
+                self.temp_block_name = ''
+                self.temp_block_text = ''
+                self.temp_block_button = ''
+                self.temp_block_button_ind = ''
                 Block(bot=self.bot, 
                       text=f"Текст блока {call.data.split('_')[-1]}\n\n{Text.dop[call.data.replace('admin_','')]['text']}\n\nКнопки: \n\n{'\n'.join([f'{name}  -->  {link}' for name, link in Text.dop[call.data.replace('admin_','')]['buttons']])}", 
                       buttons=[('Сменить текст', f'admin_change_text_{call.data.replace('admin_','')}'), ('Сменить кнопки', f'admin_change_buttons_{call.data.replace("admin_","")}'), ('<- Назад', 'admin_view')],
@@ -90,9 +100,57 @@ class UserBot:
                       bd=self.bd,
                       anyway=True
                       ).place_block(call.message)
-            #ПРОДОВЖЕННЯ
-            
-
+            elif call.data.startswith('admin_change_text'):
+                self.temp_block_name = call.data.replace('admin_change_text_','')
+                Block(bot=self.bot,
+                      text=f'Напиши текст в следующем сообщении',
+                      buttons=[('<- Назад', f'admin_{self.temp_block_name}')],
+                      edit=True,
+                      bd=self.bd,
+                      anyway=True
+                      ).place_block(call.message)
+            elif call.data.startswith('admin_change_buttons'):
+                self.temp_block_name = call.data.replace('admin_change_buttons_','')
+                Block(bot=self.bot,
+                      text='Вибери кнопку которую нужно поменять',
+                      buttons=[(button[0], f'admin_change_chosen_button_{ind}') for ind, button in enumerate(Text.dop[self.temp_block_name]['buttons'])]+[('<- Назад', f'admin_{self.temp_block_name}')],
+                      edit=True,
+                      bd=self.bd,
+                      anyway=True
+                      ).place_block(call.message)
+            elif call.data.startswith('admin_change_chosen_button'):
+                self.temp_block_button_ind = call.data.replace('admin_change_chosen_button_','')
+                Block(bot=self.bot,
+                      text=f'Напиши текст для кнопки в следующем сообщении',
+                      buttons=[('<- Назад', f'admin_change_buttons_{self.temp_block_name}')],
+                      edit=True,
+                      bd=self.bd,
+                      anyway=True
+                      ).place_block(call.message)
+            elif call.data.startswith('admin_ja_text'):
+                Text.dop[self.temp_block_name]['text'] = self.temp_block_text
+                self.temp_block_name = ''
+                self.temp_block_text = ''
+                Block(bot=self.bot,
+                      text=f'Текст {self.temp_block_name} изменен',
+                      buttons=[('<- Назад', f'admin_{call.data.replace("admin_ja_text_","")}'),('В админ меню', 'admin_menu')],
+                      edit=True,
+                      bd=self.bd,
+                      anyway=True
+                      ).place_block(call.message)
+            elif call.data.startswith('admin_ja_button'):
+                Text.dop[self.temp_block_name]['buttons'] = [(self.temp_block_button if ind == int(self.temp_block_button_ind) else button[0], button[1]) for ind, button in enumerate(Text.dop[self.temp_block_name]['buttons'])]
+                self.temp_block_name = ''
+                self.temp_block_text = ''
+                self.temp_block_button = ''
+                self.temp_block_button_ind = ''
+                Block(bot=self.bot,
+                      text=f'Кнопка {self.temp_block_name} изменена',
+                      buttons=[('<- Назад', f'admin_{call.data.replace("admin_ja_button_","")}'),('В админ меню', 'admin_menu')],
+                      edit=True,
+                      bd=self.bd,
+                      anyway=True
+                      ).place_block(call.message)
 
         @self.bot.callback_query_handler(func=lambda call: not call.data.startswith('admin'))
         def answer(call):
@@ -170,6 +228,25 @@ class UserBot:
                   bd=self.bd,
                   anyway=True
                   ).place_block(message)
+        
+        @self.bot.message_handler(func=lambda message: self.temp_block_name != '')
+        def text_handler(message):
+            if self.temp_block_button_ind != '':
+                self.temp_block_button = message.text
+                Block(bot=self.bot,
+                    text=f'Поменять текст кнопки {self.temp_block_name}?\n\n{message.text}',
+                    buttons=[('Да', f'admin_ja_button_{self.temp_block_name}'), ('Нет', f'admin_{self.temp_block_name}')],
+                    bd=self.bd,
+                    anyway=True
+                    ).place_block(message)
+            else:
+                self.temp_block_text = message.text
+                Block(bot=self.bot,
+                    text=f'Поменять текст {self.temp_block_name}?\n\n{message.text}',
+                    buttons=[('Да', f'admin_ja_text_{self.temp_block_name}'), ('Нет', f'admin_{self.temp_block_name}')],
+                    bd=self.bd,
+                    anyway=True
+                    ).place_block(message)
 
 
 
