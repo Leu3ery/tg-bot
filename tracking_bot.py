@@ -33,9 +33,9 @@ class TrackingBot:
             for user in self.bd.get_all_users():
                 try:
                     prime = user[4]
-                    print(prime)
+                    # print(prime)
                     chat_member = await self.bot.get_chat_member(chat_id=self.group_id, user_id=user[1])
-                    print(chat_member)
+                    # print(chat_member)
                     user_status = chat_member.status
 
                     # set prime on False if time of prime is over

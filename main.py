@@ -2,8 +2,7 @@ import os
 from dotenv import load_dotenv
 import sql_helper
 import tracking_bot
-# import user_bot
-import test as user_bot
+import user_bot
 import asyncio
 
 load_dotenv()
