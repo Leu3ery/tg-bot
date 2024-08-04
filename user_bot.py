@@ -6,7 +6,6 @@ from telebot import types
 import text_for_user_bot as Text
 from datetime import datetime, timedelta
 
-
 #Не забути замітити minutes на hours
 
 load_dotenv()
@@ -42,6 +41,18 @@ class UserBot:
             if (user := self.bd.get_user(message.chat.id)[0])[7] != None and datetime.strptime(user[7], "%Y-%m-%d %H:%M:%S.%f") > datetime.now():
                 self.bot.send_message(chat_id=message.chat.id, text=f'{Text.timer_settings['end_of_timer_text']} {datetime.strptime(self.bd.get_user(message.chat.id)[0][7], "%Y-%m-%d %H:%M:%S.%f").strftime("%H:%M")}')
         
+        @self.bot.message_handler(commands=['admin'])
+        def admin_handler(message):
+            self.temp_block_name = ''
+            self.temp_block_text = ''
+            self.temp_block_button = ''
+            self.temp_block_button_ind = ''
+            Block(bot=self.bot,
+                  text=Text.block_admin['text'],
+                  buttons=Text.block_admin['buttons'],
+                  bd=self.bd,
+                  anyway=True
+                  ).place_block(message)
 
         @self.bot.message_handler(commands=['noprime'])
         def no_prime_handler(message):
@@ -57,6 +68,10 @@ class UserBot:
         @self.bot.callback_query_handler(func=lambda call: call.data.startswith('admin'))
         def answer_admin(call):
             if call.data == 'admin_menu':
+                self.temp_block_name = ''
+                self.temp_block_text = ''
+                self.temp_block_button_ind = ''
+                self.temp_block_button = ''
                 Block(bot=self.bot,
                     text=Text.block_admin['text'],
                     buttons=Text.block_admin['buttons'],
@@ -66,8 +81,8 @@ class UserBot:
                     ).place_block(call.message)
             elif call.data == 'admin_timer':
                 Block(bot=self.bot, 
-                      text="Ти в раздели таймера", 
-                      buttons=[('В админ меню', 'admin_menu')],
+                      text="Ти в разделе таймера", 
+                      buttons=[('Поменять длительность таймера', 'admin_timer_change'), ('Текст когда время вышло', 'admin_timer_time_over'), ('Tекст появилось окно оплаты', 'admin_timer_payment'), ('Текст когда доступ к боту закроется', 'admin_timer_close'), ('В админ меню', 'admin_menu')],
                       edit=True,
                       bd=self.bd,
                       anyway=True
@@ -131,8 +146,10 @@ class UserBot:
                 Text.dop[self.temp_block_name]['text'] = self.temp_block_text
                 self.temp_block_name = ''
                 self.temp_block_text = ''
+                self.temp_block_button = ''
+                self.temp_block_button_ind = ''
                 Block(bot=self.bot,
-                      text=f'Текст {self.temp_block_name} изменен',
+                      text=f'Текст {call.data.replace("admin_ja_text_","")} изменен',
                       buttons=[('<- Назад', f'admin_{call.data.replace("admin_ja_text_","")}'),('В админ меню', 'admin_menu')],
                       edit=True,
                       bd=self.bd,
@@ -145,7 +162,7 @@ class UserBot:
                 self.temp_block_button = ''
                 self.temp_block_button_ind = ''
                 Block(bot=self.bot,
-                      text=f'Кнопка {self.temp_block_name} изменена',
+                      text=f'Кнопка {call.data.replace("admin_ja_button_","")} изменена',
                       buttons=[('<- Назад', f'admin_{call.data.replace("admin_ja_button_","")}'),('В админ меню', 'admin_menu')],
                       edit=True,
                       bd=self.bd,
@@ -219,15 +236,6 @@ class UserBot:
                       edit=Text.block_got_access['edit'],
                       bd=self.bd
                       ).place_block(call.message)
-
-        @self.bot.message_handler(commands=['admin'])
-        def admin_handler(message):
-            Block(bot=self.bot,
-                  text=Text.block_admin['text'],
-                  buttons=Text.block_admin['buttons'],
-                  bd=self.bd,
-                  anyway=True
-                  ).place_block(message)
         
         @self.bot.message_handler(func=lambda message: self.temp_block_name != '')
         def text_handler(message):
