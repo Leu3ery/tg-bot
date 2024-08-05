@@ -7,11 +7,12 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 
 class UserBot:
-    def __init__(self, token: str, bd):
+    def __init__(self, token: str, bd, link_on_chanel:str):
         self.bd = bd
         self.bot = Bot(token=token)
         self.dp = Dispatcher()
-        self.callback_handler = CallbackHandler(self.bot, self.bd, self.set_timer, self.update_dop_text_file)
+        self.link_on_chanel = link_on_chanel
+        self.callback_handler = CallbackHandler(self.bot, self.bd, self.set_timer, self.update_dop_text_file, self.link_on_chanel)
         self.message_handler = MessageHandler(self.bot, self.callback_handler)
         self.setup_handlers()
 
@@ -87,6 +88,7 @@ block_crypto = {Text.block_crypto}
 block_lavatopusd = {Text.block_lavatopusd}
 block_got_access = {Text.block_got_access}
 block_admin = {Text.block_admin}
+block_myPrime = {Text.block_myPrime}
 
 dop = {{
     'block_start': block_start,
@@ -99,7 +101,8 @@ dop = {{
     'block_got_access': block_got_access,
     'block_noprime': block_noprime,
     'timer_settings': timer_settings,
-    'block_admin': block_admin
+    'block_admin': block_admin,
+    'block_myPrime': block_myPrime
 }}
     """
 
@@ -113,11 +116,12 @@ dop = {{
 
 
 class CallbackHandler:
-    def __init__(self, bot, bd, set_timer, update_dop_text_file):
+    def __init__(self, bot, bd, set_timer, update_dop_text_file, link_on_chanel):
         self.bot = bot
         self.bd = bd
         self.set_timer = set_timer
         self.update_dop_text_file = update_dop_text_file
+        self.link_on_chanel = link_on_chanel
 
         self.temp_text = ''
         self.block_text_edit = ''
@@ -141,7 +145,7 @@ class CallbackHandler:
             self.block_button_edit = ''
             self.block_button_num_edit = ''
             await Block(text="Ти в разделе изменения блоков", 
-            buttons=[('Стартовый блок', 'admin_block_start'), ('Канал', 'admin_block_channel'), ('Вопросы', 'admin_block_question'), ('Выбор времени', 'admin_block_choose_time'), ('Выбор способа оплаты', 'admin_block_choose_payment'), ('Криптовалюта', 'admin_block_crypto'), ('Лаватоп', 'admin_block_lavatopusd'), ('При получении доступа', 'admin_block_got_access'), ('При окончании премиума', 'admin_block_noprime'), ('В админ меню', 'admin_menu')],
+            buttons=[('Стартовый блок', 'admin_block_start'), ('Канал', 'admin_block_channel'), ('Вопросы', 'admin_block_question'), ('Подписки', 'admin_block_myPrime'), ('Выбор времени', 'admin_block_choose_time'), ('Выбор способа оплаты', 'admin_block_choose_payment'), ('Криптовалюта', 'admin_block_crypto'), ('Лаватоп', 'admin_block_lavatopusd'), ('При получении доступа', 'admin_block_got_access'), ('При окончании премиума', 'admin_block_noprime'), ('В админ меню', 'admin_menu')],
             edit=True,
             bd=self.bd,
             anyway=True
@@ -433,6 +437,12 @@ class CallbackHandler:
                   edit=Text.block_question['edit'],
                   bd=self.bd
                   ).place_block(call)
+        elif call.data == 'myPrime':
+            await Block(text=(Text.block_myPrime['text'] + f'\n\n{'https://t.me/+mtojuZOTFE4zMTIy'}' + f'\n\nДо: {self.bd.get_user(call.message.chat.id)[0][5]}') if self.bd.get_user(call.message.chat.id)[0][4] == True else 'У тебя пока нет подписок',
+                  buttons=Text.block_myPrime['buttons'],
+                  edit=Text.block_myPrime['edit'],
+                  bd=self.bd
+                  ).place_block(call)
         elif 'time' in call.data:
             await Block(text=Text.block_choose_payment['text'], 
                   buttons=Text.block_choose_payment['buttons'],
@@ -458,8 +468,8 @@ class CallbackHandler:
             # ASYNC
             self.bd.set_have_prime(call.message.chat.id, True)
             self.bd.set_had_prime(call.message.chat.id, True)
-            self.bd.set_end_of_prime(call.message.chat.id, (datetime.now() + timedelta(days=30*int(a) if (a:=call.data.split('_')[-1]) != 'forever' else 9999)).strftime("%Y-%m-%d"))
-            await Block(text=Text.block_got_access['text'], 
+            self.bd.set_end_of_prime(call.message.chat.id, (datetime.now() + timedelta(days=30*int(call.data.split('_')[-1]))).strftime("%Y-%m-%d"))
+            await Block(text=Text.block_got_access['text'] + f'\n{self.link_on_chanel}', 
                   buttons=Text.block_got_access['buttons'],
                   edit=Text.block_got_access['edit'],
                   bd=self.bd

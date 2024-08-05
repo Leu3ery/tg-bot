@@ -7,7 +7,7 @@ from aiogram import Bot, Dispatcher, types
 #Не забути замінити 10с на 60с
 
 class TrackingBot:
-    def __init__(self, token: str, group_id , bd, user_bot):
+    def __init__(self, token: str, group_id , bd, user_bot=False):
         self.group_id = group_id
         self.bd = bd
         self.user_bot = user_bot
@@ -39,17 +39,19 @@ class TrackingBot:
                     user_status = chat_member.status
 
                     # set prime on False if time of prime is over
-                    if user[4] and user[5] < datetime.now().strftime("%Y-%m-%d"):
+                    if user[4] and (user[5] == None or user[5] < datetime.now().strftime("%Y-%m-%d")):
                         self.bd.set_have_prime(user[1], False)
                         self.bd.set_end_of_prime(user[1], None)
                         prime = False  
-                        await self.user_bot.no_prime_message(user[1])
 
                     if user_status == 'member' and not prime:
                         await self.bot.ban_chat_member(chat_id=self.group_id, user_id=user[1])
                         await asyncio.sleep(0.5)
                         await self.bot.unban_chat_member(chat_id=self.group_id, user_id=user[1])
-                        await self.user_bot.no_prime_message(user[1])
+                        if self.user_bot != False:
+                            try:
+                                await self.user_bot.no_prime_message(user[1])
+                            except: print(f'Не удалось написать {user[1]}')
                         print(f"User {user[1]} was kicked because of not having prime")
                 except:
                     # Якщо користувач не є частиною чату або інша помилка
