@@ -15,10 +15,12 @@ async def main():
     TRACKING_BOT_TOKEN = os.getenv('TRACKING_BOT_TOKEN')
     GROUP_ID = os.getenv('GROUP_ID')
     USER_BOT_TOKEN = os.getenv('USER_BOT_TOKEN')
+    CHANEL_LINK = os.getenv('CHANEL_LINK')
 
-    # Створюємо екземпляри ботів
-    for_users_bot = user_bot.UserBot(USER_BOT_TOKEN, bd, link_on_chanel='https://t.me/+mtojuZOTFE4zMTIy')
-    in_group_bot = tracking_bot.TrackingBot(TRACKING_BOT_TOKEN, GROUP_ID, bd, for_users_bot)
+    USER_BOT = os.getenv('USER_BOT')
+
+    for_users_bot = user_bot.UserBot(USER_BOT_TOKEN, bd, link_on_chanel=CHANEL_LINK)
+    in_group_bot = tracking_bot.TrackingBot(TRACKING_BOT_TOKEN, GROUP_ID, bd, for_users_bot if USER_BOT == 'True' else False)
 
     await asyncio.gather(
         for_users_bot.run(),

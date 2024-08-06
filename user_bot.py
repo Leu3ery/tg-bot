@@ -1,4 +1,5 @@
 import text_for_user_bot_copy as Text
+import os
 from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import CommandStart, Command
@@ -8,13 +9,17 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 class UserBot:
     def __init__(self, token: str, bd, link_on_chanel:str):
-        self.bd = bd
-        self.bot = Bot(token=token)
-        self.dp = Dispatcher()
-        self.link_on_chanel = link_on_chanel
-        self.callback_handler = CallbackHandler(self.bot, self.bd, self.set_timer, self.update_dop_text_file, self.link_on_chanel)
-        self.message_handler = MessageHandler(self.bot, self.callback_handler)
-        self.setup_handlers()
+        USER_BOT = os.getenv('USER_BOT')
+        if USER_BOT == 'True':
+            self.bd = bd
+            self.bot = Bot(token=token)
+            self.dp = Dispatcher()
+            self.link_on_chanel = link_on_chanel
+            self.callback_handler = CallbackHandler(self.bot, self.bd, self.set_timer, self.update_dop_text_file, self.link_on_chanel)
+            self.message_handler = MessageHandler(self.bot, self.callback_handler)
+            self.setup_handlers()
+        else:
+            print('USER_BOT = False')
 
 
     def setup_handlers(self):
@@ -29,7 +34,7 @@ class UserBot:
                 buttons = [[InlineKeyboardButton(text=button_text, callback_data=call)] for button_text, call in Text.block_start['buttons']]
                 markup = InlineKeyboardMarkup(inline_keyboard=buttons)
                 await message.answer(Text.block_start['text'], reply_markup=markup)
-                if (timer := self.bd.get_user(message.chat.id)[0][7]) != None and datetime.strptime(timer, "%Y-%m-%d %H:%M:%S.%f") < datetime.now():
+                if (timer := self.bd.get_user(message.chat.id)[0][7]) != None:
                     await self.bot.send_message(chat_id=message.chat.id, text=f'{Text.timer_settings['end_of_timer_text']} {datetime.strptime(self.bd.get_user(message.chat.id)[0][7], "%Y-%m-%d %H:%M:%S.%f").strftime("%H:%M")}')
             else:
                 await message.answer(Text.timer_settings['timer_is_over_text'])
@@ -89,6 +94,8 @@ block_lavatopusd = {Text.block_lavatopusd}
 block_got_access = {Text.block_got_access}
 block_admin = {Text.block_admin}
 block_myPrime = {Text.block_myPrime}
+
+buttons_list = {Text.buttons_list}
 
 dop = {{
     'block_start': block_start,
@@ -451,19 +458,37 @@ class CallbackHandler:
                   bd=self.bd
                   ).place_block(call)
         elif 'crypto' in call.data:
-            await Block(text=Text.block_crypto['text']+'\n'+call.data.split('_')[-1], 
-                  buttons=Text.block_crypto['buttons'],
-                  edit=Text.block_crypto['edit'],
-                  dop_callback='_'+call.data.split('_')[-1],
-                  bd=self.bd
-                  ).place_block(call)
+            CRYPTO = os.getenv('CRYPTO')
+            if CRYPTO == 'True':
+                await Block(text=Text.block_crypto['text']+'\n'+call.data.split('_')[-1], 
+                    buttons=Text.block_crypto['buttons'],
+                    edit=Text.block_crypto['edit'],
+                    dop_callback='_'+call.data.split('_')[-1],
+                    bd=self.bd
+                    ).place_block(call)
+            else:
+                await Block(
+                    text='Пока не доступно',
+                    buttons=[('<- Назад', 'choose_time')],
+                    edit=True,
+                    bd=self.bd
+                ).place_block(call)
         elif 'lavatopusd' in call.data:
-            await Block(text=Text.block_lavatopusd['text']+'\n'+call.data.split('_')[-1], 
-                  buttons=Text.block_lavatopusd['buttons'],
-                  edit=Text.block_lavatopusd['edit'],
-                  dop_callback='_'+call.data.split('_')[-1],
-                  bd=self.bd
-                  ).place_block(call)
+            LAVATOP = os.getenv('LAVATOP')
+            if LAVATOP == 'True':
+                await Block(text=Text.block_lavatopusd['text'] + f'\n\n{[item for item in Text.buttons_list if item[1] == call.data.split('_')[-1]][0]}', 
+                    buttons=Text.block_lavatopusd['buttons'],
+                    edit=Text.block_lavatopusd['edit'],
+                    dop_callback='_'+call.data.split('_')[-1],
+                    bd=self.bd
+                    ).place_block(call)
+            else:
+                await Block(
+                    text='Пока не доступно',
+                    buttons=[('<- Назад', 'choose_time')],
+                    edit=True,
+                    bd=self.bd
+                ).place_block(call)
         elif 'for_free' in call.data:
             # ASYNC
             self.bd.set_have_prime(call.message.chat.id, True)
