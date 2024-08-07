@@ -1,4 +1,5 @@
 import text_for_user_bot_copy as Text
+import lavatop_api as Lava
 import os
 from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types
@@ -8,15 +9,17 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 
 class UserBot:
-    def __init__(self, token: str, bd, link_on_chanel:str):
+    def __init__(self, token: str, bd, link_on_chanel:str, lavatop_api):
         USER_BOT = os.getenv('USER_BOT')
         if USER_BOT == 'True':
             self.bd = bd
             self.bot = Bot(token=token)
             self.dp = Dispatcher()
             self.link_on_chanel = link_on_chanel
-            self.callback_handler = CallbackHandler(self.bot, self.bd, self.set_timer, self.update_dop_text_file, self.link_on_chanel)
-            self.message_handler = MessageHandler(self.bot, self.callback_handler)
+            self.lavatop_api = lavatop_api
+            self.email = []
+            self.callback_handler = CallbackHandler(self.bot, self.bd, self.set_timer, self.update_dop_text_file, self.link_on_chanel, self.lavatop_api, self.email)
+            self.message_handler = MessageHandler(self.bot, self.callback_handler, self.email)
             self.setup_handlers()
         else:
             print('USER_BOT = False')
@@ -41,6 +44,8 @@ class UserBot:
         
         @self.dp.message(Command('admin'))
         async def admin(message: types.Message):
+            # ASSENTYAL if message.chat.id == MODERATOR
+            self.callback_handler.set_vars()
             self.bd.add_new_user(message.chat.id)
             self.bd.set_start_of_using_bot(message.chat.id, datetime.now().strftime("%Y-%m-%d"))
             self.bd.set_nickname(message.chat.id, message.chat.username)
@@ -90,7 +95,7 @@ block_question = {Text.block_question}
 block_choose_time = {Text.block_choose_time}
 block_choose_payment = {Text.block_choose_payment}
 block_crypto = {Text.block_crypto}
-block_lavatopusd = {Text.block_lavatopusd}
+block_lavatop = {Text.block_lavatop}
 block_got_access = {Text.block_got_access}
 block_admin = {Text.block_admin}
 block_myPrime = {Text.block_myPrime}
@@ -104,7 +109,7 @@ dop = {{
     'block_choose_time': block_choose_time,
     'block_choose_payment': block_choose_payment,
     'block_crypto': block_crypto,
-    'block_lavatopusd': block_lavatopusd,
+    'block_lavatop': block_lavatop,
     'block_got_access': block_got_access,
     'block_noprime': block_noprime,
     'timer_settings': timer_settings,
@@ -123,13 +128,18 @@ dop = {{
 
 
 class CallbackHandler:
-    def __init__(self, bot, bd, set_timer, update_dop_text_file, link_on_chanel):
+    def __init__(self, bot, bd, set_timer, update_dop_text_file, link_on_chanel, lavatop_api, email):
         self.bot = bot
         self.bd = bd
         self.set_timer = set_timer
         self.update_dop_text_file = update_dop_text_file
         self.link_on_chanel = link_on_chanel
+        self.lavatop_api = lavatop_api
+        self.email = email
 
+        self.set_vars()
+    
+    def set_vars(self):
         self.temp_text = ''
         self.block_text_edit = ''
         self.block_button_edit = ''
@@ -152,7 +162,7 @@ class CallbackHandler:
             self.block_button_edit = ''
             self.block_button_num_edit = ''
             await Block(text="Ти в разделе изменения блоков", 
-            buttons=[('Стартовый блок', 'admin_block_start'), ('Канал', 'admin_block_channel'), ('Вопросы', 'admin_block_question'), ('Подписки', 'admin_block_myPrime'), ('Выбор времени', 'admin_block_choose_time'), ('Выбор способа оплаты', 'admin_block_choose_payment'), ('Криптовалюта', 'admin_block_crypto'), ('Лаватоп', 'admin_block_lavatopusd'), ('При получении доступа', 'admin_block_got_access'), ('При окончании премиума', 'admin_block_noprime'), ('В админ меню', 'admin_menu')],
+            buttons=[('Стартовый блок', 'admin_block_start'), ('Канал', 'admin_block_channel'), ('Вопросы', 'admin_block_question'), ('Подписки', 'admin_block_myPrime'), ('Выбор времени', 'admin_block_choose_time'), ('Выбор способа оплаты', 'admin_block_choose_payment'), ('Криптовалюта', 'admin_block_crypto'), ('Лаватоп', 'admin_block_lavatop'), ('При получении доступа', 'admin_block_got_access'), ('При окончании премиума', 'admin_block_noprime'), ('В админ меню', 'admin_menu')],
             edit=True,
             bd=self.bd,
             anyway=True
@@ -431,6 +441,9 @@ class CallbackHandler:
                   bd=self.bd
                   ).place_block(call)
         elif call.data == 'choose_time':
+            if (user := [user for user in self.email if call.message.chat.id == user[0]]) != []:
+                print(user)
+                self.email.remove(user[0])
             if self.bd.get_user(call.message.chat.id)[0][7] == None and self.bd.get_user(call.message.chat.id)[0][8] == 0:
                 await self.set_timer(call.message.chat.id)
             await Block(text=Text.block_choose_time['text'], 
@@ -464,31 +477,78 @@ class CallbackHandler:
                     buttons=Text.block_crypto['buttons'],
                     edit=Text.block_crypto['edit'],
                     dop_callback='_'+call.data.split('_')[-1],
-                    bd=self.bd
+                    bd=self.bd,
+                    anyway=True
                     ).place_block(call)
             else:
                 await Block(
                     text='Пока не доступно',
                     buttons=[('<- Назад', 'choose_time')],
                     edit=True,
-                    bd=self.bd
+                    bd=self.bd,
+                    anyway=True
                 ).place_block(call)
-        elif 'lavatopusd' in call.data:
+        elif 'lavatop' in call.data:
             LAVATOP = os.getenv('LAVATOP')
             if LAVATOP == 'True':
-                await Block(text=Text.block_lavatopusd['text'] + f'\n\n{[item for item in Text.buttons_list if item[1] == call.data.split('_')[-1]][0]}', 
-                    buttons=Text.block_lavatopusd['buttons'],
-                    edit=Text.block_lavatopusd['edit'],
+                await Block(text=Text.block_lavatop['text'], 
+                    buttons=Text.block_lavatop['buttons'],
+                    edit=Text.block_lavatop['edit'],
                     dop_callback='_'+call.data.split('_')[-1],
-                    bd=self.bd
+                    bd=self.bd,
+                    anyway=True
                     ).place_block(call)
             else:
                 await Block(
                     text='Пока не доступно',
                     buttons=[('<- Назад', 'choose_time')],
                     edit=True,
-                    bd=self.bd
+                    bd=self.bd,
+                    anyway=True
                 ).place_block(call)
+        elif 'currency' in call.data:
+            currency = call.data.split('_')[-2]
+            time = call.data.split('_')[-1]
+            self.email.append((call.message.chat.id, currency, time))
+            await Block(text='Введи почту для оплаты в следующем формате: example@gmail.com',
+                  buttons=[('<- Назад', 'choose_time')],
+                  edit=True,
+                  bd=self.bd,
+                  anyway=True
+                  ).place_block(call)
+        elif 'final_payment' in call.data:
+            email = call.data.split('_')[-3]
+            currency = call.data.split('_')[-2]
+            time = call.data.split('_')[-1]
+            self.bd.set_email(call.message.chat.id, email)
+            item = [i for i in Text.buttons_list if i[1] == time][0]
+            response = self.lavatop_api.create_link(item[3] , currency, email).json()
+            url = response['paymentUrl']
+            payment_id = response['id']
+            buttons = [[InlineKeyboardButton(text='Оплатить', url=url)], [InlineKeyboardButton(text='Проверить оплату', callback_data=f'check_payment_{time}_{payment_id}')], [InlineKeyboardButton(text='<- Назад', callback_data='choose_time')]]
+            markup = InlineKeyboardMarkup(inline_keyboard=buttons)
+            await call.message.edit_text(text=f'Покупка подписки на {item[0]}', inline_message_id=call.inline_message_id, reply_markup=markup)
+        elif 'check_payment' in call.data:
+            time = call.data.split('_')[-2]
+            payment_id = call.data.split('_')[-1]
+            response = self.lavatop_api.get_paymant_by_id(payment_id).json()
+            await self.bot.send_message(chat_id=call.message.chat.id, text=f'{response}')
+            print(response)
+            if response['status'] != 'in-progress':
+                print('Успешно оплачено')
+                await self.bot.send_message(chat_id=call.message.chat.id, text=f'Оплата завершена', reply_markup=None)
+                self.bd.set_have_prime(call.message.chat.id, True)
+                self.bd.set_had_prime(call.message.chat.id, True)
+                self.bd.set_end_of_prime(call.message.chat.id, (datetime.now() + timedelta(days=30*int(time))).strftime("%Y-%m-%d"))
+                await Block(text=Text.block_got_access['text'] + f'\n{self.link_on_chanel}', 
+                    buttons=Text.block_got_access['buttons'],
+                    edit=Text.block_got_access['edit'],
+                    bd=self.bd,
+                    anyway=True
+                    ).place_block(call)
+            else:
+                await self.bot.send_message(chat_id=call.message.chat.id, text=f'Оплата в процессе', reply_markup=None)
+
         elif 'for_free' in call.data:
             # ASYNC
             self.bd.set_have_prime(call.message.chat.id, True)
@@ -515,9 +575,10 @@ class CallbackHandler:
     
 
 class MessageHandler:
-    def __init__(self, bot, callback_handler: CallbackHandler):
+    def __init__(self, bot, callback_handler: CallbackHandler, email):
         self.bot = bot
         self.callback_handler = callback_handler
+        self.email = email
 
     async def block_text_edit(self, message):
         self.callback_handler.temp_text = message.text
@@ -583,7 +644,18 @@ class MessageHandler:
               buttons=[('Да', 'admin_timer_paymentStart_yes'), ('Нет', 'admin_timer')],
               ).place_block(message)
 
+    async def send_email(self, message, user):
+        if '@' in message.text and '.' in message.text and message.text.index('@') < message.text.index('.'):
+            await JustBlock(text=f'Подтвердить?',
+                buttons=[('Да', f'final_payment_{message.text}_{user[1]}_{user[2]}'), ('Ввести еще раз', f'currency_{user[1]}_{user[2]}'), ('<- Назад', 'choose_time')],
+                ).place_block(message)
+        else:
+            await JustBlock(text=f'Email введен некорректно',
+                buttons=[('Ввести еще раз', f'currency_{user[1]}_{user[2]}'), ('<- Назад', 'choose_time')],
+                ).place_block(message)
+
     async def handle(self, message):
+        # ASSENTYAL if message.chat.id == MODERATOR
         if self.callback_handler.block_text_edit != '':
             await self.block_text_edit(message)
         elif self.callback_handler.block_button_edit != '' and self.callback_handler.block_button_num_edit != '':
@@ -602,7 +674,9 @@ class MessageHandler:
             await self.admin_timer_close(message)
         elif self.callback_handler.admin_timer_paymentStart == True:
             await self.admin_timer_paymentStart(message)
-
+        elif len(self.email) > 0 and (user := [user for user in self.email if message.chat.id == user[0]]) != []:
+            self.email.remove(user[0])
+            await self.send_email(message, user[0])
 
 
 class JustBlock:

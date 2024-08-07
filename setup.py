@@ -29,7 +29,7 @@ block_question = {Text.block_question}
 block_choose_time = {Text.block_choose_time}
 block_choose_payment = {Text.block_choose_payment}
 block_crypto = {Text.block_crypto}
-block_lavatopusd = {Text.block_lavatopusd}
+block_lavatop = {Text.block_lavatop}
 block_got_access = {Text.block_got_access}
 block_admin = {Text.block_admin}
 block_myPrime = {Text.block_myPrime}
@@ -43,7 +43,7 @@ dop = {{
     'block_choose_time': block_choose_time,
     'block_choose_payment': block_choose_payment,
     'block_crypto': block_crypto,
-    'block_lavatopusd': block_lavatopusd,
+    'block_lavatop': block_lavatop,
     'block_got_access': block_got_access,
     'block_noprime': block_noprime,
     'timer_settings': timer_settings,

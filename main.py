@@ -4,6 +4,7 @@ import sql_helper
 import tracking_bot
 import user_bot
 import asyncio
+import lavatop_api as Lava
 
 load_dotenv()
 
@@ -16,10 +17,12 @@ async def main():
     GROUP_ID = os.getenv('GROUP_ID')
     USER_BOT_TOKEN = os.getenv('USER_BOT_TOKEN')
     CHANEL_LINK = os.getenv('CHANEL_LINK')
+    LAVATOP = os.getenv('LAVATOP')
+    LAVATOP_API = os.getenv('LAVATOP_API')
 
     USER_BOT = os.getenv('USER_BOT')
 
-    for_users_bot = user_bot.UserBot(USER_BOT_TOKEN, bd, link_on_chanel=CHANEL_LINK)
+    for_users_bot = user_bot.UserBot(USER_BOT_TOKEN, bd, link_on_chanel=CHANEL_LINK, lavatop_api=Lava.LavaTopAPI(LAVATOP_API))
     in_group_bot = tracking_bot.TrackingBot(TRACKING_BOT_TOKEN, GROUP_ID, bd, for_users_bot if USER_BOT == 'True' else False)
 
     await asyncio.gather(
