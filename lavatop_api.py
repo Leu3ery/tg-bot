@@ -35,6 +35,7 @@ class LavaTopAPI:
 if __name__ == '__main__':
     token = '5qrdAsdvjyj9yvXCWj7uEhQBP9rpEqkM2JXPVaVEWijM0Fgmt7CXKmG6NVDCMAzy'
     api = LavaTopAPI(token)
+    
     # resp = api.create_link('4ccc40c5-dabd-44aa-b4fb-27ae1cdfb987', 'RUB')
     # print(resp.json())
     # link = api.get_paymant_by_id('ae2e4773-ab9e-4855-ab04-20941361a6e1')
@@ -50,6 +51,7 @@ if __name__ == '__main__':
     #         print(id, link)
     # payment = api.get_paymant_by_id('e5851539-6d63-4798-85cf-f7453be99049')
     # print(payment.json())
+    #a8928377-778e-40c9-b38a-4fd26cda4786
 
 
 '''{'id': 'ae2e4773-ab9e-4855-ab04-20941361a6e1', 'status': 'in-progress', 'amountTotal': {'currency': 'RUB', 'amount': 50.0}, 'paymentUrl': 'https://app.lava.top/products/6870bed1-be74-4b69-977c-8471ad3c7ee4/4ccc40c5-dabd-44aa-b4fb-27ae1cdfb987?paymentParams=CiAgICAgICAgewogICAgICAgICAgImludm9pY2VJZCI6ICJhZTJlNDc3My1hYjllLTQ4NTUtYWIwNC0yMDk0MTM2MWE2ZTEiLAogICAgICAgICAgInBheW1lbnRTZXR0aW5ncyI6IHsiaWQiOiJhZTJlNDc3My1hYjllLTQ4NTUtYWIwNC0yMDk0MTM2MWE2ZTEiLCJ0eXBlIjoiaW52b2ljZSIsInN0YXR1cyI6ImluLXByb2dyZXNzIiwiYW1vdW50X3RvdGFsIjp7ImN1cnJlbmN5IjoiUlVCIiwiYW1vdW50Ijo1MC4wfSwicHJvdmlkZXIiOnsibmFtZSI6ImJhbmsxMzEiLCJwYXJhbWV0ZXJzIjp7InB1YmxpY190b2tlbiI6IjU0ZDFjODYxOWE4ZmIzZmY0YWQxZGEyZDU4MjdhYWE5YTkyMDQyZDExZDMxZTJiY2YzZTk4NDEzNjExMGRmMmEiLCJzdHlsZXNoZWV0IjoiaHR0cHM6Ly93aWRnZXQuYmFuazEzMS5ydS9wYXltZW50LWZvcm0uY3NzIiwic2NyaXB0IjoiaHR0cHM6Ly93aWRnZXQuYmFuazEzMS5ydS9wYXltZW50LWZvcm0uanMifX19CiAgICAgICAgfQogICAgICA'}'''

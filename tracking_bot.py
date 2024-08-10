@@ -34,15 +34,16 @@ class TrackingBot:
                 try:
                     prime = user[4]
                     # print(prime)
-                    chat_member = await self.bot.get_chat_member(chat_id=self.group_id, user_id=user[1])
-                    # print(chat_member)
-                    user_status = chat_member.status
 
                     # set prime on False if time of prime is over
                     if user[4] and (user[5] == None or user[5] < datetime.now().strftime("%Y-%m-%d")):
                         self.bd.set_have_prime(user[1], False)
                         self.bd.set_end_of_prime(user[1], None)
                         prime = False  
+                    
+                    chat_member = await self.bot.get_chat_member(chat_id=self.group_id, user_id=user[1])
+                    # print(chat_member)
+                    user_status = chat_member.status
 
                     if user_status == 'member' and not prime:
                         await self.bot.ban_chat_member(chat_id=self.group_id, user_id=user[1])
