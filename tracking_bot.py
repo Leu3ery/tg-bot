@@ -30,30 +30,30 @@ class TrackingBot:
     async def periodic_task(self):
         while True:
             print('Periodic task')
-            for user in self.bd.get_all_users():
+
+            for user in self.bd.get_all_members():
                 try:
-                    prime = user[4]
-                    # print(prime)
-
-                    # set prime on False if time of prime is over
-                    if user[4] and (user[5] == None or user[5] < datetime.now().strftime("%Y-%m-%d")):
-                        self.bd.set_have_prime(user[1], False)
-                        self.bd.set_end_of_prime(user[1], None)
-                        prime = False  
-                    
-                    chat_member = await self.bot.get_chat_member(chat_id=self.group_id, user_id=user[1])
-                    # print(chat_member)
-                    user_status = chat_member.status
-
-                    if user_status == 'member' and not prime:
+                    if user[2] < datetime.now().strftime("%Y-%m-%d") and (await self.bot.get_chat_member(chat_id=self.group_id, user_id=user[1])).status == 'member':
                         await self.bot.ban_chat_member(chat_id=self.group_id, user_id=user[1])
                         await asyncio.sleep(0.5)
                         await self.bot.unban_chat_member(chat_id=self.group_id, user_id=user[1])
+                        self.bd.del_member(user[1])
                         if self.user_bot != False:
                             try:
                                 await self.user_bot.no_prime_message(user[1])
                             except: print(f'Не удалось написать {user[1]}')
                         print(f"User {user[1]} was kicked because of not having prime")
+                except Exception as e:
+                    print(e)
+                    print(f'User {user[1]} not found')
+
+            
+            for user in self.bd.get_all_users():
+                try:
+                    # set prime on False if time of prime is over
+                    if user[4] and (user[5] == None or user[5] < datetime.now().strftime("%Y-%m-%d")):
+                        self.bd.set_have_prime(user[1], False)
+                        self.bd.set_end_of_prime(user[1], None)
                 except:
                     # Якщо користувач не є частиною чату або інша помилка
                     print(f"Error with user {user[1]}")

@@ -77,6 +77,7 @@ class UserBot:
         async def on_noprime(message: types.Message):
             self.bd.set_have_prime(message.chat.id, False)
             self.bd.set_end_of_prime(message.chat.id, None)
+            self.bd.add_member(message.chat.id,( datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d"))
 
         @self.dp.message(Command('notimer'))
         async def on_notimer(message: types.Message):
@@ -569,10 +570,12 @@ class CallbackHandler:
                 await self.bot.send_message(chat_id=call.message.chat.id, text=f'Произошла ошибка', reply_markup=None)
 
         elif 'for_free' in call.data:
+            end_of_prime = (datetime.now() + timedelta(days=30*int(call.data.split('_')[-1]))).strftime("%Y-%m-%d")
+            self.bd.add_member(call.message.chat.id, end_of_prime)
             # ASYNC
             self.bd.set_have_prime(call.message.chat.id, True)
             self.bd.set_had_prime(call.message.chat.id, True)
-            self.bd.set_end_of_prime(call.message.chat.id, (datetime.now() + timedelta(days=30*int(call.data.split('_')[-1]))).strftime("%Y-%m-%d"))
+            self.bd.set_end_of_prime(call.message.chat.id, end_of_prime)
             await Block(text=Text.block_got_access['text'] + f'\n{self.link_on_chanel}', 
                   buttons=Text.block_got_access['buttons'],
                   edit=Text.block_got_access['edit'],

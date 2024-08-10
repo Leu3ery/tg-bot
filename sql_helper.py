@@ -4,6 +4,8 @@ class SqlHelper:
     def __init__(self, db_name='database.db'):
         self.db_name = db_name
         self._initialize_database()
+        self._initialize_database_members()
+
         
     def _initialize_database(self):
         with self._get_connection() as conn:
@@ -21,7 +23,49 @@ class SqlHelper:
             )""")
             conn.commit()
         print("Table created")
-
+    
+    def _initialize_database_members(self):
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("""CREATE TABLE IF NOT EXISTS members (
+                id INTEGER PRIMARY KEY,
+                user_id INTEGER,
+                end_of_prime STRING
+            )""")
+            conn.commit()
+        print("Table created")
+    
+    def add_member(self, user_id, end_of_prime):
+        # перезапиши данние в случаи если такой юзер уже есть иначе создание нового юзера
+        if self.get_member(user_id):
+            with self._get_connection() as conn:
+                cur = conn.cursor()
+                cur.execute("UPDATE members SET end_of_prime = ? WHERE user_id = ?", (end_of_prime, user_id))
+                conn.commit()
+            return
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("INSERT INTO members VALUES (?, ?, ?)", (None, user_id, end_of_prime))
+            conn.commit()
+    
+    def get_all_members(self):
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM members")
+            return cur.fetchall()
+        
+    def get_member(self, user_id):
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM members WHERE user_id = ?", (user_id,))
+            return cur.fetchall()
+        
+    def del_member(self, user_id):  
+        with self._get_connection() as conn:
+            cur = conn.cursor()
+            cur.execute("DELETE FROM members WHERE user_id = ?", (user_id,))
+            conn.commit()
+        
     def _get_connection(self):
         return sqlite3.connect(self.db_name)
     
