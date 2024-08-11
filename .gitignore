@@ -23,4 +23,4 @@ __pycache__/
 database.db
 
 #SETUP
-setup_empty.py
+setup.py
