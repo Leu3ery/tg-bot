@@ -7,14 +7,14 @@ GROUP_ID = '-1002217130582'
 USER_BOT = 'True'
 USER_BOT_TOKEN = '1792974481:AAE_fmb0cpUVJTf6dOGJrRYpuIe5tZ6EuEw'
 CHANEL_LINK = 'https://t.me/+mtojuZOTFE4zMTIy'
-buttons_list = [('1 Месяц', '1', '50', '4ccc40c5-dabd-44aa-b4fb-27ae1cdfb987'), ('6 Месяцов', '6', '250', 'd4fee54e-d08b-41fd-a9fa-3262baa9763a'), ('12 Месяцев', '12', '450', '3e59480b-fae8-4cb3-b193-4ce89419c22b')]
+buttons_list = [('1 Месяц', '1', '1', '4ccc40c5-dabd-44aa-b4fb-27ae1cdfb987'), ('6 Месяцов', '6', '100', 'd4fee54e-d08b-41fd-a9fa-3262baa9763a'), ('12 Месяцев', '12', '160', '3e59480b-fae8-4cb3-b193-4ce89419c22b')]
 # lavatop True/False
 LAVATOP = 'True'
 LAVATOP_API = '5qrdAsdvjyj9yvXCWj7uEhQBP9rpEqkM2JXPVaVEWijM0Fgmt7CXKmG6NVDCMAzy'
 # setup offer_id
 # crypto True/False
-CRYPTO = 'False'
-CRYPTO_TOKEN = ''
+CRYPTO = 'True'
+CRYPTO_TOKEN = 'TUpjgCrB1np6vE93dPMRKNcCc35TstEfU7'
 
 
 
@@ -84,4 +84,4 @@ def get_products_id(token):
 
 update_dop_text_file()
 update_env_file()
-get_products_id(LAVATOP_API)
+# get_products_id(LAVATOP_API)

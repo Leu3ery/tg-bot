@@ -1,5 +1,4 @@
 import text_for_user_bot_copy as Text
-import lavatop_api as Lava
 import os
 from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types
@@ -13,6 +12,8 @@ class Form(StatesGroup):
     email = State()
     currency = State()
     time = State()
+    price = State()
+    transaction_id = State()
 
     block_name = State()
     block_text = State()
@@ -30,7 +31,7 @@ class Form(StatesGroup):
 
 
 class UserBot:
-    def __init__(self, token: str, bd, link_on_chanel:str, lavatop_api):
+    def __init__(self, token: str, bd, link_on_chanel:str, lavatop_api, crypto_api):
         USER_BOT = os.getenv('USER_BOT')
         if USER_BOT == 'True':
             self.bd = bd
@@ -38,7 +39,10 @@ class UserBot:
             self.dp = Dispatcher()
             self.link_on_chanel = link_on_chanel
             self.lavatop_api = lavatop_api
-            self.callback_handler = CallbackHandler(self.bot, self.bd, self.set_timer, self.update_dop_text_file, self.link_on_chanel, self.lavatop_api)
+            self.crypto_api = crypto_api
+            self.transaction_ids_holder = set(self.crypto_api.get_transactions())
+            # self.transaction_ids_holder = set()
+            self.callback_handler = CallbackHandler(self.bot, self.bd, self.set_timer, self.update_dop_text_file, self.link_on_chanel, self.lavatop_api, self.crypto_api, self.transaction_ids_holder)
             self.message_handler = MessageHandler(self.bot, self.callback_handler)
             self.setup_handlers()
         else:
@@ -147,13 +151,15 @@ dop = {{
 
 
 class CallbackHandler:
-    def __init__(self, bot, bd, set_timer, update_dop_text_file, link_on_chanel, lavatop_api):
+    def __init__(self, bot, bd, set_timer, update_dop_text_file, link_on_chanel, lavatop_api, crypto_api, transaction_ids_holder):
         self.bot = bot
         self.bd = bd
         self.set_timer = set_timer
         self.update_dop_text_file = update_dop_text_file
         self.link_on_chanel = link_on_chanel
         self.lavatop_api = lavatop_api
+        self.crypto_api = crypto_api
+        self.transaction_ids_holder = transaction_ids_holder
     
 
     async def admin_block(self, call, state: FSMContext):
@@ -480,10 +486,12 @@ class CallbackHandler:
             await state.clear()
             CRYPTO = os.getenv('CRYPTO')
             if CRYPTO == 'True':
-                await Block(text=Text.block_crypto['text']+'\n'+call.data.split('_')[-1], 
+                price = [i for i in Text.buttons_list if i[1] == call.data.split('_')[-1]][0][2]
+                crypto_adress = os.getenv('CRYPTO_TOKEN')
+                await Block(text=f'{Text.block_crypto["text"]} {price}USDT\n\nКошелек - {crypto_adress}\n\nСеть - TRC20',
                     buttons=Text.block_crypto['buttons'],
                     edit=Text.block_crypto['edit'],
-                    dop_callback='_'+call.data.split('_')[-1],
+                    dop_callback='_'+call.data.split('_')[-1]+'_'+price,
                     bd=self.bd,
                     anyway=True
                     ).place_block(call)
@@ -495,6 +503,47 @@ class CallbackHandler:
                     bd=self.bd,
                     anyway=True
                 ).place_block(call)
+        elif 'id_input' in call.data:
+            price = call.data.split('_')[-1]
+            time = call.data.split('_')[-2]
+            await state.update_data(price=price)
+            await state.update_data(time=time)
+            await state.set_state(Form.transaction_id)
+            await Block(text='Введи transaction_id для проверки оплаты в следующем сообщении: ',
+                  buttons=[('<- Назад', 'choose_time')],
+                  edit=True,
+                  bd=self.bd,
+                  anyway=True
+                  ).place_block(call)
+        elif 'transaction_id_check' == call.data:
+            data = await state.get_data()
+            price = data['price']
+            time = data['time']
+            transaction_id = data['transaction_id']
+            await state.clear()
+            transaction = self.crypto_api.find_transactions(transaction_id)
+            # print(transaction)
+            if transaction_id not in self.transaction_ids_holder and transaction and float(transaction['value'][:-6]+'.'+transaction['value'][-6:]) >= float(price):
+                print('Успешно оплачено')
+                self.transaction_ids_holder.add(transaction_id)
+                end_of_prime = (datetime.now() + timedelta(days=30*int(time))).strftime("%Y-%m-%d")
+                self.bd.add_member(call.message.chat.id, end_of_prime)
+                self.bd.set_have_prime(call.message.chat.id, True)
+                self.bd.set_had_prime(call.message.chat.id, True)
+                self.bd.set_end_of_prime(call.message.chat.id, end_of_prime)
+                await Block(text=Text.block_got_access['text'] + f'\n{self.link_on_chanel}', 
+                    buttons=Text.block_got_access['buttons'],
+                    edit=Text.block_got_access['edit'],
+                    bd=self.bd,
+                    anyway=True
+                    ).place_block(call)
+            else:
+                await Block(text=f'Транзакция не найдена или сумма слишком маленькая или по етой транзакции уже было оплачено\n\nПопробуйте еще раз',
+                    buttons=[('<- Назад', 'choose_time')],
+                    edit=True,
+                    bd=self.bd,
+                    anyway=True
+                    ).place_block(call)
         elif 'lavatop' in call.data:
             await state.clear()
             LAVATOP = os.getenv('LAVATOP')
@@ -554,10 +603,11 @@ class CallbackHandler:
                 print(response)
                 if response['status'] == 'completed':
                     print('Успешно оплачено')
-                    await self.bot.send_message(chat_id=call.message.chat.id, text=f'Оплата завершена', reply_markup=None)
+                    end_of_prime = (datetime.now() + timedelta(days=30*int(call.data.split('_')[-1]))).strftime("%Y-%m-%d")
+                    self.bd.add_member(call.message.chat.id, end_of_prime)
                     self.bd.set_have_prime(call.message.chat.id, True)
                     self.bd.set_had_prime(call.message.chat.id, True)
-                    self.bd.set_end_of_prime(call.message.chat.id, (datetime.now() + timedelta(days=30*int(time))).strftime("%Y-%m-%d"))
+                    self.bd.set_end_of_prime(call.message.chat.id, end_of_prime)
                     await Block(text=Text.block_got_access['text'] + f'\n{self.link_on_chanel}', 
                         buttons=Text.block_got_access['buttons'],
                         edit=Text.block_got_access['edit'],
@@ -569,18 +619,18 @@ class CallbackHandler:
             else:
                 await self.bot.send_message(chat_id=call.message.chat.id, text=f'Произошла ошибка', reply_markup=None)
 
-        elif 'for_free' in call.data:
-            end_of_prime = (datetime.now() + timedelta(days=30*int(call.data.split('_')[-1]))).strftime("%Y-%m-%d")
-            self.bd.add_member(call.message.chat.id, end_of_prime)
-            # ASYNC
-            self.bd.set_have_prime(call.message.chat.id, True)
-            self.bd.set_had_prime(call.message.chat.id, True)
-            self.bd.set_end_of_prime(call.message.chat.id, end_of_prime)
-            await Block(text=Text.block_got_access['text'] + f'\n{self.link_on_chanel}', 
-                  buttons=Text.block_got_access['buttons'],
-                  edit=Text.block_got_access['edit'],
-                  bd=self.bd
-                  ).place_block(call)
+        # elif 'for_free' in call.data:
+        #     end_of_prime = (datetime.now() + timedelta(days=30*int(call.data.split('_')[-1]))).strftime("%Y-%m-%d")
+        #     self.bd.add_member(call.message.chat.id, end_of_prime)
+        #     # ASYNC
+        #     self.bd.set_have_prime(call.message.chat.id, True)
+        #     self.bd.set_had_prime(call.message.chat.id, True)
+        #     self.bd.set_end_of_prime(call.message.chat.id, end_of_prime)
+        #     await Block(text=Text.block_got_access['text'] + f'\n{self.link_on_chanel}', 
+        #           buttons=Text.block_got_access['buttons'],
+        #           edit=Text.block_got_access['edit'],
+        #           bd=self.bd
+        #           ).place_block(call)
 
     async def handle(self, call: types.CallbackQuery, state: FSMContext):
         if call.data.startswith('admin_menu'):
@@ -608,6 +658,12 @@ class MessageHandler:
             await message.answer('Подтвердить?', reply_markup=markup)
         else:
             await message.answer('Email введен некорректно')
+    
+    async def save_transaction_id(self, message: types.Message, state: FSMContext):
+        await state.update_data(transaction_id=message.text)
+        await JustBlock(text='Все верно?', 
+              buttons=[('Да', 'transaction_id_check'), ('<- Назад', 'choose_time')]
+              ).place_block(message)
 
     async def block_text_edit(self, message, state: FSMContext):
         # self.callback_handler.temp_text = message.text
@@ -684,6 +740,8 @@ class MessageHandler:
         current_state = await state.get_state()
         if current_state == 'Form:email':
             await self.save_email(message, state)
+        elif current_state == 'Form:transaction_id':
+            await self.save_transaction_id(message, state)
         elif current_state == 'Form:block_text':
             await self.block_text_edit(message, state)
         elif current_state == 'Form:block_button_text':

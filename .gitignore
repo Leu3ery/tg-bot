@@ -21,3 +21,6 @@ __pycache__/
 
 #Бази данних
 database.db
+
+#SETUP
+setup_empty.py
