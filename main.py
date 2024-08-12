@@ -7,7 +7,7 @@ import asyncio
 import lavatop_api as Lava
 import crypto as Crypto
 
-load_dotenv()
+load_dotenv() 
 
 async def main():
     # Ініціалізуємо базу даних
